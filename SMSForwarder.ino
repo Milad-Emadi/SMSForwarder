@@ -1,52 +1,66 @@
 #include <SoftwareSerial.h>
 
+// Define SoftwareSerial pins for SIM800L
 SoftwareSerial sim800l(10, 11); // RX, TX
 
 void setup() {
-  Serial.begin(9600);
-  sim800l.begin(9600);
+  Serial.begin(9600);   // Monitor output baud rate
+  sim800l.begin(9600);  // SIM800L baud rate
 
   Serial.println("Initializing SIM800L...");
   delay(1000);
 
-  // Check module response
-  sim800l.println("AT");
-  delay(1000);
-  Serial.println(sim800l.readString());
+  // Check if SIM800L is responding
+  sendCommand("AT");
+
+  // Set fixed baud rate (optional)
+  sendCommand("AT+IPR=9600");
 
   // Check Signal Strength
-  sim800l.println("AT+CSQ");
-  delay(1000);
-  Serial.println("Signal Strength: ");
-  Serial.println(sim800l.readString());
+  Serial.println("Checking Signal Strength...");
+  sendCommand("AT+CSQ");
 
-  // Set SMSC Number (Change to your carrier's SMSC)
-  sim800l.println("AT+CSCA=\"+981234567890\"");
-  delay(1000);
-  Serial.println("Set SMS Center");
+  // Set SMS Center Number (Change this to your carrier's SMSC number)
+  Serial.println("Setting SMS Center Number...");
+  sendCommand("AT+CSCA=\"+981234567890\""); // Replace with your SMSC number
 
-  // Enable SMS delivery reports
-  sim800l.println("AT+CSMP=17,167,0,0");
-  delay(1000);
-  sim800l.println("AT+CNMI=2,1,0,0,0");
-  delay(1000);
-  Serial.println("SMS Delivery Report Enabled");
+  // Enable SMS Text Mode
+  Serial.println("Setting SMS Text Mode...");
+  sendCommand("AT+CMGF=1");
 
-  // Set SMS Text Mode
-  sim800l.println("AT+CMGF=1");
-  delay(1000);
-  Serial.println("Set SMS Text Mode");
+  // Enable SMS Delivery Reports
+  Serial.println("Enabling SMS Delivery Reports...");
+  sendCommand("AT+CSMP=17,167,0,0");
+  sendCommand("AT+CNMI=2,1,0,0,0");
 
   // Send SMS
-  sim800l.println("AT+CMGS=\"+989123456789\""); // Replace with actual phone number
-  delay(1000);
-  sim800l.print("Hello! This is a test message from SIM800L.");
-  delay(500);
-  sim800l.write(26); // CTRL+Z to send
-  delay(5000);
-  
-  Serial.println("SMS Sent!");
+  Serial.println("Sending SMS...");
+  sendSMS("+989123456789", "Hello! This is a test message from SIM800L."); // Replace with your number
+
+  Serial.println("Setup Complete!");
 }
 
 void loop() {
+}
+
+// Function to send AT commands and display response
+void sendCommand(String command) {
+  sim800l.println(command);
+  delay(1000);
+  while (sim800l.available()) {
+    Serial.write(sim800l.read());
+  }
+  Serial.println();
+}
+
+// Function to send an SMS
+void sendSMS(String phoneNumber, String message) {
+  sim800l.println("AT+CMGS=\"" + phoneNumber + "\"");
+  delay(1000);
+  sim800l.print(message);
+  delay(500);
+  sim800l.write(26);  // CTRL+Z to send
+  delay(5000);
+
+  Serial.println("SMS Sent!");
 }
